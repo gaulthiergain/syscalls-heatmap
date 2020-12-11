@@ -23,7 +23,7 @@ usage: heatmap.py [-h] [--aggregated-file AGGREGATED_FILE] [--nb-apps NB_APPS]
                   [--save-heatmap [SAVE_HEATMAP]]
 ```
 
-There are two different mode:
+There are two different modes:
 1) **AGGREGATED_FILE**: Use the `--aggregated-file` argument following
 by the path of a json file. This one contains an aggregated list of
 syscalls that were gathered and aggregated by testing 30 applications.
@@ -32,7 +32,7 @@ The following file *"syscalls\_sample.json"* is provided as sample.
 following by the path of a folder that contains the json files
 gathered by the [toolchain](https://github.com/gaulthiergain/tools).
 These ones must use a particular structure that is defined by the
-[toolchain](https://github.com/gaulthiergain/tools). A example folder
+[toolchain](https://github.com/gaulthiergain/tools). An example folder
 *"to\_aggregate"* is provided as sample.
 
 Note that if you use the `--aggregated-file` argument, you need to 
