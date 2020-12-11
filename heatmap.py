@@ -13,31 +13,31 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Sycalls occurence used by apps (default value)
+# Sycalls occurences used by apps (default value).
 SYSCALLS_FILENAME = 'syscalls.json'
 
-# Number of apps that were analysed (default value)
+# Number of apps that were analysed (default value).
 NB_APPS = 30
 
 
-# Excel file that contains the syscall implementation
-#TODO USE Google DOC API
+# Excel file that contains the syscall implementation.
+#TODO USE Google DOC API.
 SHEET_FILENAME = 'Unikraft - Syscall Status.xlsx'
 
-# Columns to consider in excel file
+# Columns to consider in the excel file.
 NB_COLS = 3
 
 INDEX_RAX       = 0 #syscall number (col: 0)
 INDEX_NAME      = 1 #syscall name   (col: 1)
 INDEX_STATUS    = 2 #syscall status (col: 2)
 
-# Width of the grid (15 cells)
+# Width of the grid (15 cells).
 NB_DIV = 15
 
-# Font size for text in cell
+# Font size for text in cell.
 FONT_SIZE = 4
 
-# For JSON parsing
+# For JSON parsing.
 STATIC_DATA = "static_data"
 DYNAMIC_DATA = "dynamic_data"
 SYSCALLS_DATA = "system_calls"
@@ -53,26 +53,26 @@ def readAggregatedFile(data, path):
             if key in data:
                 data[key] = value
             else:
-                # May require local change to the json file to adapt the name
+                # May require local change to the json file to adapt the name.
                 print("[WARNING]" + symbol + " is not present in the excel file.")
 
-# processToAggregate merges the dynamic and static json key into
+# processToAggregate merges the dynamic and static json keys into
 # a single json object.
 def processToAggregate(data, json_data):
 
-    # Used to keep track of syscalls of a single json file
+    # Used to keep track of syscalls of a single json file.
     local_set = set()
-    # First parse static data
+    # First parse static data.
     if STATIC_DATA in json_data:
         static_data = json_data[STATIC_DATA][SYSCALLS_DATA]
         for symbol in static_data:
             if symbol in data:
                 data[symbol] += 1
             else:
-                # May require local change to the json file to adapt the name
+                # May require local change to the json file to adapt the name.
                 print("[WARNING] " + symbol + " is not present in the excel file.")
             local_set.add(symbol)
-    # Then parse dynamic data
+    # Then parse dynamic data.
     if DYNAMIC_DATA in json_data:
         dynamic_data = json_data[DYNAMIC_DATA][SYSCALLS_DATA]
         for symbol in dynamic_data:
@@ -97,7 +97,7 @@ def aggregateFolder(data, path):
                     nbFiles = nbFiles + 1
     return nbFiles
 
-# str2bool uses for the agrs parsing
+# str2bool is used for boolean arguments parsing.
 def str2bool(v):
     
     if isinstance(v, bool):
@@ -109,8 +109,8 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-# openExcelSheet opens a excel sheet and read its content.
-# Only 3 columns are parsed (cols: [0-2]).
+# openExcelSheet opens an excel sheet and reads its content.
+# Only the first three columns are parsed (cols: [0-2]).
 def openExcelSheet(filename):
 
     data_sheet = list()
@@ -145,7 +145,7 @@ def openExcelSheet(filename):
 
     return data_sheet
 
-# chunks splits a list into a list of list of a specific size.
+# chunks splits a list into a list of lists (matrix) of a specific size.
 def chunks(list_to_split, chunk_size):
     
     result_list = []
@@ -194,23 +194,23 @@ def main():
     
     data = { i : 0 for i in data_sheet[INDEX_NAME]}
     if args.folder_to_aggregate is not None:
-        # Read a folder and aggregate the data
+        # Read a folder and aggregate the data.
         args.nb_apps = aggregateFolder(data, args.folder_to_aggregate)
         with open('aggregated.json', 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
     else:
-        # Read an aggregate file that contains already the mapping <syscall, usage>
+        # Read an aggregate file that contains already the mapping <syscall, usage>.
         readAggregatedFile(data, args.aggregated_file)
 
     list_values = list()
     for v in data.values():
-        # Compute a percentage
+        # Compute a percentage.
         list_values.append((v/args.nb_apps)*100)
 
-    # Split into chunk the values
+    # Split into chunks the values.
     data = chunks(list_values, NB_DIV)
 
-    # Use the syscall number a string for the annotation
+    # Use the syscall number a string for the annotation.
     labels = chunks(list(map(str,data_sheet[INDEX_RAX])), NB_DIV)
     
     plot(data, data_sheet, labels, args.display_syscall_name, args.save_heatmap)
