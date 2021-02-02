@@ -8,7 +8,7 @@ syscalls status is provided in this repository.
 
 ```
 pip3 install numpy
-pip install xlrd==1.2.0 (temporary)
+pip3 install xlrd==1.2.0 (temporary)
 pip3 install pandas
 pip3 install seaborn 
 pip3 install matplotlib
