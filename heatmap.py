@@ -25,7 +25,7 @@ class colors:
     UNDERLINE = '\033[4m'
 
 # Sycalls occurences used by apps (default value).
-SYSCALLS_FILENAME = 'syscalls.json'
+SYSCALLS_FILENAME = 'syscalls_sample.json'
 
 # Number of apps that were analysed (default value).
 NB_APPS = 30
