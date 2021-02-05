@@ -37,3 +37,18 @@ These ones must use a particular structure that is defined by the
 
 Note that if you use the `--aggregated-file` argument, you need to 
 adapt the `--nb-apps` argument. Its default value is 30.
+
+
+To get numerical system call statistics in applications use `cruncher.py`.
+Use `-s` or `-a` arguments to print system call popularity or system call support in applications:
+```
+$ python cruncher.py -s
+syscall,status,num_apps
+read,OKAY,30
+[...]
+
+$ python cruncher.py -a
+app,total,okay,not_impl,reg_miss,incomplete,stubbed,planned,broken,in_progress,absent
+apache,41,23,8,1,5,1,0,1,2,1
+[...]
+```
