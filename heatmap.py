@@ -13,8 +13,19 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
+class colors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 # Sycalls occurences used by apps (default value).
-SYSCALLS_FILENAME = 'syscalls.json'
+SYSCALLS_FILENAME = 'syscalls_sample.json'
 
 # Number of apps that were analysed (default value).
 NB_APPS = 30
@@ -58,27 +69,29 @@ def readAggregatedFile(data, path):
 
 # processToAggregate merges the dynamic and static json keys into
 # a single json object.
-def processToAggregate(data, json_data):
+def processToAggregate(file, data, json_data):
 
     # Used to keep track of syscalls of a single json file.
     local_set = set()
+
     # First parse static data.
     if STATIC_DATA in json_data:
         static_data = json_data[STATIC_DATA][SYSCALLS_DATA]
         for symbol in static_data:
-            if symbol in data:
-                data[symbol] += 1
-            else:
-                # May require local change to the json file to adapt the name.
-                print("[WARNING] " + symbol + " is not present in the excel file.")
             local_set.add(symbol)
+
     # Then parse dynamic data.
     if DYNAMIC_DATA in json_data:
         dynamic_data = json_data[DYNAMIC_DATA][SYSCALLS_DATA]
         for symbol in dynamic_data:
-            if symbol in data and symbol not in local_set:
-                data[symbol] = 1
-                local_set.add(symbol)
+            local_set.add(symbol)
+
+    for symbol in local_set:
+        if symbol in data:
+            data[symbol] += 1
+        else:
+            # May require local change to the json file to adapt the name.
+            print(f'[{colors.WARNING}WARNING{colors.ENDC}] Symbol {colors.UNDERLINE}{symbol}{colors.ENDC} (in file {colors.BOLD}{file}{colors.ENDC}) is not present in the EXCEL file')
 
 # readAggregateFile reads an aggregated json file which contains the 
 # mapping <syscall, usage>. It is used with the argument 
@@ -87,14 +100,15 @@ def aggregateFolder(data, path):
     
     nbFiles = 0
     for subdir, dirs, files in os.walk(path):
-        for file in files:
+        for file in sorted(files):
             filepath = subdir + os.sep + file
 
             if filepath.endswith(".json"):
                 with open(filepath) as json_file:
                     json_data = json.load(json_file)
-                    processToAggregate(data, json_data)
+                    processToAggregate(file, data, json_data)
                     nbFiles = nbFiles + 1
+
     return nbFiles
 
 # str2bool is used for boolean arguments parsing.
