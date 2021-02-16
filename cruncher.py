@@ -10,6 +10,9 @@ import sys
 import json
 import argparse
 import xlrd
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 
 # Folder storing application JSON files from syscall analysis tool:
@@ -45,7 +48,8 @@ apps = {}
 #   "id": system call id (number)
 #   "name": system call name (again - also used as dictionary key)
 #   "status": system call status
-#   "apps" list of application names
+#   "apps": list of application names
+#   "num_apps": number of applications using the syscall
 syscalls = {}
 
 # Undefined system calls dictionary, indexed by syscall name
@@ -54,7 +58,8 @@ syscalls = {}
 # but not as part of the system call status document.
 # Each item in the dictionary is another dictionary with the fields:
 #   "name": system call name (again - also used as dictionary key)
-#   "apps" list of application names
+#   "apps": list of application names
+#   "num_apps": number of of applications using the syscall
 undefined_syscalls = {}
 
 
@@ -109,13 +114,16 @@ def process_application_json(app_name, json_data):
                 break
         if found:
             syscalls[symbol]['apps'].append(app_name)
+            syscalls[symbol]['num_apps'] += 1
         else:
             if not symbol in undefined_syscalls:
                 undefined_syscalls[symbol] = {
                     'name': symbol,
-                    'apps': []
+                    'apps': [],
+                    'num_apps': 0
                     }
             undefined_syscalls[symbol]['apps'].append(app_name)
+            undefined_syscalls[symbol]['num_apps'] += 1
 
 
 def walk_application_json_folder(path):
@@ -222,6 +230,207 @@ def print_syscalls():
         print("{},{},{}".format(s, 'ABSENT', len(undefined_syscalls[s]['apps'])))
 
 
+def top_not_supported_syscalls(top):
+    """Extract top not-supported syscalls.
+    """
+    sorted_syscalls = sorted(syscalls, key=lambda a: syscalls[a]['num_apps'], reverse=True)
+    top_list = []
+    for s in sorted_syscalls:
+        if syscalls[s]['status'] == 'NOT_IMPL' \
+                or syscalls[s]['status'] == 'INCOMPLETE' \
+                or syscalls[s]['status'] == 'PLANNED' \
+                or syscalls[s]['status'] == 'IN_PROGRESS' \
+                or syscalls[s]['status'] == 'BROKEN':
+                    top_list.append(s)
+                    if len(top_list) >= top:
+                        break
+
+    return top_list
+
+
+def get_not_supported_except(app, except_list):
+    not_impl = len(apps[app]["NOT_IMPL"])
+    incomplete = len(apps[app]["INCOMPLETE"])
+    reg_miss = len(apps[app]["REG_MISS"])
+    stubbed = len(apps[app]["STUBBED"])
+    planned = len(apps[app]["PLANNED"])
+    in_progress = len(apps[app]["IN_PROGRESS"])
+    broken = len(apps[app]["BROKEN"])
+    absent = len(apps[app]["ABSENT"])
+
+    not_supported_list = apps[app]["NOT_IMPL"] + apps[app]["INCOMPLETE"] + \
+            apps[app]["PLANNED"] + apps[app]["IN_PROGRESS"] + apps[app]["BROKEN"]
+    initial = len(not_supported_list)
+
+    for s in except_list:
+        if s in not_supported_list:
+            initial -= 1
+
+    return initial
+
+
+app_syscalls_supported = {}
+
+
+def collect_app_syscalls_supported():
+    """Collect statistics on system call support per application.
+    as comma-separated values (CSV).
+    """
+    top_5_not_supported = top_not_supported_syscalls(5)
+    top_10_not_supported = top_not_supported_syscalls(10)
+    print(top_5_not_supported)
+    print(top_10_not_supported)
+    for a in apps:
+        okay = len(apps[a]['OKAY'])
+        not_impl = len(apps[a]["NOT_IMPL"])
+        incomplete = len(apps[a]["INCOMPLETE"])
+        reg_miss = len(apps[a]["REG_MISS"])
+        stubbed = len(apps[a]["STUBBED"])
+        planned = len(apps[a]["PLANNED"])
+        in_progress = len(apps[a]["IN_PROGRESS"])
+        broken = len(apps[a]["BROKEN"])
+        absent = len(apps[a]["ABSENT"])
+        total = okay + not_impl + incomplete + reg_miss + stubbed + planned + in_progress + broken
+        not_supported = not_impl + incomplete + planned + in_progress + broken
+        not_supported_except_top_5 = get_not_supported_except(a, top_5_not_supported)
+        not_supported_except_top_10 = get_not_supported_except(a, top_10_not_supported)
+        supported = okay + reg_miss + stubbed
+        app_syscalls_supported[a] = {
+                "app": a,
+                "total": total,
+                "num_supported": supported,
+                "perc_supported": supported * 100.0 / total,
+                "num_not_supported": not_supported,
+                "perc_not_supported": not_supported * 100.0 / total,
+                "num_not_supported_except_top_5": not_supported_except_top_5,
+                "perc_not_supported_except_top_5": not_supported_except_top_5 * 100.0 / total,
+                "num_not_supported_except_top_10": not_supported_except_top_10,
+                "perc_not_supported_except_top_10": not_supported_except_top_10 * 100.0 / total,
+                }
+
+
+def print_app_syscalls_supported():
+    """Print syscall support as comma-separated values (CSV).
+    """
+    print("{},{},{},{},{}".format("app", "num_supported", "num_not_supported", "perc_supported", "perc_not_supported"))
+    for a in app_syscalls_supported:
+        print("{},{}/{},{}/{},{:4.2f},{:4.2f}".format(a["app"], a["num_supported"], a["total"], a["num_not_supported"], a["total"], a["perc_supported"], a["perc_not_supported"]))
+
+
+def print_syscall_percentage_required():
+    """Print the number of apps that require at least a given percentage of
+    syscalls to be implemented.
+    """
+    print("{},{}".format("syscall_percentage","num_apps"))
+    for i in range(0,101,5):
+        num = 0
+        for a in app_syscalls_supported:
+            if a["perc_supported"] > i:
+                num += 1
+        print("{:d}%,{:d}".format(i, num))
+
+
+def plot_syscall_support_cdf():
+    """Plot CDF (Cumulative Distribution Function) that highlights
+    syscall support.
+    """
+    syscall_percentage_list = []
+    app_percentage_list = []
+    for i in range(0,101,5):
+        num = 0
+        for a in app_syscalls_supported:
+            if a["perc_supported"] > i:
+                num += 1
+        syscall_percentage_list.append("{:d}%".format(i))
+        app_percentage_list.append(num * 100 / len(app_percentage))
+
+    print(app_percentage_list)
+    print(syscall_percentage_list)
+    #fig, ax = plt.subplots()
+    plt.bar(syscall_percentage_list, app_percentage_list)
+    #ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%3.0f%%"))
+    #ax.set(xlim=(0, 1), ylim=(0, 1))
+    plt.xlabel('Supported syscalls [%]')
+    plt.ylabel('Applications with at least that syscall support [%]')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_syscall_support():
+    """Print plot to highlight syscall support.
+    """
+    syscall_percentage_list = []
+    app_percentage_list = []
+    for i in range(0,101,5):
+        num = 0
+        for a in app_syscalls_supported:
+            if a["perc_supported"] >= i and a["perc_supported"] < i+5:
+                num += 1
+        syscall_percentage_list.append("{:d}%".format(i))
+        app_percentage_list.append(num * 100 / len(app_syscalls_supported))
+
+    print(app_percentage_list)
+    print(syscall_percentage_list)
+    fig, ax = plt.subplots()
+    plt.bar(syscall_percentage_list, app_percentage_list)
+    ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%3.0f%%"))
+    #ax.set(xlim=(0, 1), ylim=(0, 1))
+    plt.xlabel('Supported syscalls [%]')
+    plt.ylabel('Applications with that much syscall support [%]')
+    plt.grid(True)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_syscall_support_per_app():
+    """Print plot to highlight syscall support per application.
+    """
+    supported_list = []
+    not_supported_list = []
+    not_supported_5_list = []
+    not_supported_10_list = []
+    only_5_list = []
+    only_10_list = []
+    only_5_to_10_list = []
+    app_list = []
+    for a in app_syscalls_supported:
+        app_list.append(a)
+        supported = app_syscalls_supported[a]["perc_supported"]
+        not_supported = app_syscalls_supported[a]["perc_not_supported"]
+        not_supported_5 = app_syscalls_supported[a]["perc_not_supported_except_top_5"]
+        not_supported_10 = app_syscalls_supported[a]["perc_not_supported_except_top_10"]
+        only_5 = not_supported - not_supported_5
+        only_10 = not_supported - not_supported_10
+        only_5_to_10 = not_supported_5 - not_supported_10
+        supported_list.append(supported)
+        not_supported_list.append(not_supported)
+        not_supported_5_list.append(not_supported_5)
+        not_supported_10_list.append(not_supported_10)
+        only_5_list.append(only_5)
+        only_10_list.append(only_10)
+        only_5_to_10_list.append(only_5_to_10)
+
+    fig, ax = plt.subplots()
+    p1 = plt.bar(app_list, supported_list)
+    p2 = plt.bar(app_list, not_supported_list, bottom=supported_list)
+    p3 = plt.bar(app_list, only_10_list, bottom=supported_list)
+    p4 = plt.bar(app_list, only_5_list, bottom=supported_list)
+
+    ax.yaxis.set_major_formatter(ticker.FormatStrFormatter("%3.0f%%"))
+    ax.yaxis.grid(linestyle='dotted')
+    plt.xticks(np.arange(len(app_list)), app_list, rotation=45)
+    plt.yticks(np.arange(0, 101, 10))
+    #plt.title('System call support per-application')
+    #plt.xlabel('Applications')
+    plt.ylabel('System call support', fontsize=16)
+    plt.legend((p1[0], p4[0], p3[0], p2[0]), ('Supported syscalls', 'If top 5 syscalls implemented', 'If top 10 syscalls implemented', 'If all syscalls implemented'))
+
+    plt.show()
+
+
 def main():
     """Process system call status spreadsheet (SHEET_FILENAME) and
     application JSON folder (APPLICATION_JSON_FOLDER).
@@ -233,6 +442,10 @@ def main():
                         help='Print system call support in applications')
     parser.add_argument('-s', '--syscalls', action='store_true',
                         help='Print system call usage / popularity in apps')
+    parser.add_argument('-p', '--plot', action='store_true',
+                        help='Plot syscall support')
+    parser.add_argument('-m', '--missing', action='store_true',
+                        help='Percentage of syscalls missing per app')
     args = parser.parse_args()
 
     data_sheet = process_syscall_spreadsheet(SHEET_FILENAME)
@@ -245,15 +458,24 @@ def main():
             "id": ids[i],
             "name": names[i],
             "status": stats[i],
-            "apps": []
+            "apps": [],
+            "num_apps": 0
             }
     # Read folder with application JSON files and aggregate the data.
     walk_application_json_folder(APPLICATION_JSON_FOLDER)
+
+    # Collect statistics about supported system calls for each app.
+    collect_app_syscalls_supported()
 
     if args.apps:
         print_apps()
     if args.syscalls:
         print_syscalls()
+    if args.missing:
+        print_app_syscalls_supported()
+        print_syscall_percentage_required()
+    if args.plot:
+        plot_syscall_support_per_app()
 
 
 if __name__ == "__main__":
