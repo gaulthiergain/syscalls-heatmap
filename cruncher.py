@@ -410,6 +410,10 @@ def plot_syscall_support_per_app():
         only_5_to_10_list.append(only_5_to_10)
 
     fig, ax = plt.subplots()
+    #p1 = plt.bar(app_list, supported_list, color='white', edgecolor='black') #, hatch='x')
+    #p2 = plt.bar(app_list, not_supported_list, bottom=supported_list, color='black', edgecolor='black') #, hatch='/')
+    #p3 = plt.bar(app_list, only_10_list, bottom=supported_list, color='gray', edgecolor='black') #, hatch='+')
+    #p4 = plt.bar(app_list, only_5_list, bottom=supported_list, color='lightgray', edgecolor='black') #, hatch='*')
     p1 = plt.bar(app_list, supported_list)
     p2 = plt.bar(app_list, not_supported_list, bottom=supported_list)
     p3 = plt.bar(app_list, only_10_list, bottom=supported_list)
