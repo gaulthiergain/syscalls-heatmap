@@ -237,8 +237,7 @@ def top_not_supported_syscalls(top):
     top_list = []
     for s in sorted_syscalls:
         if syscalls[s]['status'] == 'NOT_IMPL' \
-                or syscalls[s]['status'] == 'PLANNED' \
-                or syscalls[s]['status'] == 'IN_PROGRESS':
+                or syscalls[s]['status'] == 'PLANNED':
                     top_list.append(s)
                     if len(top_list) >= top:
                         break
@@ -256,7 +255,7 @@ def get_not_supported_except(app, except_list):
     broken = len(apps[app]["BROKEN"])
     absent = len(apps[app]["ABSENT"])
 
-    not_supported_list = apps[app]["NOT_IMPL"] + apps[app]["PLANNED"] + apps[app]["IN_PROGRESS"]
+    not_supported_list = apps[app]["NOT_IMPL"] + apps[app]["PLANNED"]
     initial = len(not_supported_list)
 
     for s in except_list:
@@ -288,10 +287,10 @@ def collect_app_syscalls_supported():
         broken = len(apps[a]["BROKEN"])
         absent = len(apps[a]["ABSENT"])
         total = okay + not_impl + incomplete + reg_miss + stubbed + planned + in_progress + broken
-        not_supported = not_impl + planned + in_progress
+        not_supported = not_impl + planned
         not_supported_except_top_5 = get_not_supported_except(a, top_5_not_supported)
         not_supported_except_top_10 = get_not_supported_except(a, top_10_not_supported)
-        supported = okay + reg_miss + stubbed + incomplete + broken
+        supported = okay + reg_miss + stubbed + incomplete + broken + in_progress
         app_syscalls_supported[a] = {
                 "app": a,
                 "total": total,
