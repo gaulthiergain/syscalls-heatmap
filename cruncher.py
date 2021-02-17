@@ -21,7 +21,7 @@ APPLICATION_JSON_FOLDER = 'to_aggregate'
 
 # Excel file that contains the syscall implementation
 # TODO: Use Google DOC API.
-SHEET_FILENAME = 'Unikraft - Syscall Status.xls'
+SHEET_FILENAME = 'Unikraft - Syscall Status - no-fork.xls'
 
 # Columns to consider in the excel file
 NB_COLS = 3
