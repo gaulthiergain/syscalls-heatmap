@@ -426,7 +426,7 @@ def plot_syscall_support_per_app():
     #plt.title('System call support per-application')
     #plt.xlabel('Applications')
     plt.ylabel('System call support', fontsize=16)
-    plt.legend((p1[0], p4[0], p3[0], p2[0]), ('Supported syscalls', 'If top 5 syscalls implemented', 'If top 10 syscalls implemented', 'If all syscalls implemented'))
+    plt.legend((p1[0], p4[0], p3[0], p2[0]), ('Supported syscalls', 'If top 5 syscalls implemented', 'If top 10 syscalls implemented', 'If remaining syscalls implemented'))
 
     plt.show()
 
