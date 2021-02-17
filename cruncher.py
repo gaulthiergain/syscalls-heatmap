@@ -274,8 +274,8 @@ def collect_app_syscalls_supported():
     """
     top_5_not_supported = top_not_supported_syscalls(5)
     top_10_not_supported = top_not_supported_syscalls(10)
-    print(top_5_not_supported)
-    print(top_10_not_supported)
+    #print(top_5_not_supported)
+    #print(top_10_not_supported)
     for a in apps:
         okay = len(apps[a]['OKAY'])
         not_impl = len(apps[a]["NOT_IMPL"])
