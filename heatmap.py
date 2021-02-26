@@ -46,7 +46,7 @@ INDEX_STATUS    = 2 #syscall status (col: 2)
 NB_DIV = 15
 
 # Font size for text in cell.
-FONT_SIZE = 4
+FONT_SIZE = 8
 
 # For JSON parsing.
 STATIC_DATA = "static_data"
@@ -168,6 +168,7 @@ def chunks(list_to_split, chunk_size):
         list_to_split = list_to_split[chunk_size:]
     return result_list
 
+list_values = list()
 # plot displays the heapmap.
 def plot(data, data_sheet, labels, display_syscall_name, save_heatmap):
     
@@ -181,8 +182,20 @@ def plot(data, data_sheet, labels, display_syscall_name, save_heatmap):
         yticklabels=False, 
         xticklabels=False,
         annot_kws={'size':FONT_SIZE})
+
+    for i,t in enumerate(ax.texts): 
+        if data_sheet[INDEX_STATUS][i].upper() == "OKAY":
+            print(data_sheet[INDEX_STATUS][i].upper())
+            t.set_text(t.get_text())
+            #print(str(data_sheet[INDEX_RAX][i]) + ":" + data_sheet[INDEX_NAME][i] + " : " + data_sheet[INDEX_STATUS][i])
+        else:
+            t.set_text("")
+            
     if display_syscall_name:
-        for i,t in enumerate(ax.texts): t.set_text(t.get_text() + "\n" + str(data_sheet[INDEX_NAME][i]) + "\n[" +data_sheet[INDEX_STATUS][i].upper() + "]")
+        if len(data_sheet[INDEX_STATUS]) > 0:
+            for i,t in enumerate(ax.texts): t.set_text(t.get_text() + "\n" + str(data_sheet[INDEX_NAME][i]) + "\n[" +data_sheet[INDEX_STATUS][i].upper() + "]")
+        else:
+            for i,t in enumerate(ax.texts): t.set_text("")
     if save_heatmap:
         plt.savefig("syscall-heatmap.pdf")
         print("Figure saved into the current repo")
@@ -216,7 +229,6 @@ def main():
         # Read an aggregate file that contains already the mapping <syscall, usage>.
         readAggregatedFile(data, args.aggregated_file)
 
-    list_values = list()
     for v in data.values():
         # Compute a percentage.
         list_values.append((v/args.nb_apps)*100)
